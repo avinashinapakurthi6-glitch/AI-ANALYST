@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, users, datasets, analyses, piiDetectionLogs, InsertDataset, InsertAnalysis, InsertPiiDetectionLog } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,56 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+// Dataset queries
+export async function createDataset(data: InsertDataset) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(datasets).values(data);
+  return result;
+}
+
+export async function getDatasetById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(datasets).where(eq(datasets.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getUserDatasets(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(datasets).where(eq(datasets.ownerId, userId));
+}
+
+export async function deleteDataset(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.delete(datasets).where(eq(datasets.id, id));
+}
+
+// Analysis queries
+export async function createAnalysis(data: InsertAnalysis) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.insert(analyses).values(data);
+}
+
+export async function getAnalysisByDataset(datasetId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return await db.select().from(analyses).where(eq(analyses.datasetId, datasetId));
+}
+
+// PII Detection queries
+export async function createPiiDetectionLog(data: InsertPiiDetectionLog) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.insert(piiDetectionLogs).values(data);
+}
+
+export async function getPiiDetectionLog(datasetId: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(piiDetectionLogs).where(eq(piiDetectionLogs.datasetId, datasetId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
