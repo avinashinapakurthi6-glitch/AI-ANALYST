@@ -45,7 +45,7 @@ export const analysisRouter = router({
 
         await notifyOwner({
           title: 'Analysis Completed',
-          content: `Analysis for dataset \"${dataset.name}\" completed.`,
+          content: `Analysis for dataset "${dataset.name}" completed.`,
         });
 
         return {

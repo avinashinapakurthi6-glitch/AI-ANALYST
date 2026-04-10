@@ -32,9 +32,9 @@
 - [ ] Automated insight generation
 
 ### Dashboard & Visualization
-- [ ] Interactive Plotly dashboard
-- [ ] Chart types: bar, scatter, line, histogram
-- [ ] Customizable chart parameters
+- [x] Interactive Plotly dashboard
+- [x] Chart types: bar, scatter, line, histogram
+- [x] Customizable chart parameters
 - [ ] Real-time data updates
 
 ### Dataset Management

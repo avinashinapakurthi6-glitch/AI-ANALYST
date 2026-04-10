@@ -3,13 +3,30 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { getLoginUrl } from "@/const";
 import { Shield, Lock, Zap, BarChart3, ArrowRight } from "lucide-react";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
+import { useEffect } from "react";
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
+  const [, setLocation] = useLocation();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setLocation('/dashboard');
+    }
+  }, [isAuthenticated, setLocation]);
 
   if (isAuthenticated) {
-    return <Link href="/dashboard"><div /></Link>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+        <div className="text-center">
+          <div className="inline-block mb-4 p-3 bg-blue-500/10 rounded-full border border-blue-500/20 animate-pulse">
+            <Shield className="w-8 h-8 text-blue-400" />
+          </div>
+          <p className="text-slate-300">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
