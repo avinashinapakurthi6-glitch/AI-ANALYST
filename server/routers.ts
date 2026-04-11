@@ -4,6 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { datasetsRouter } from "./routers/datasets";
 import { analysisRouter } from "./routers/analysis";
+import { predictionRouter } from "./routers/prediction";
 
 export const appRouter = router({
   system: systemRouter,
@@ -19,6 +20,7 @@ export const appRouter = router({
   }),
   datasets: datasetsRouter,
   analysis: analysisRouter,
+  prediction: predictionRouter,
 });
 
 export type AppRouter = typeof appRouter;
