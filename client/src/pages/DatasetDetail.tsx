@@ -10,6 +10,7 @@ import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
 import { Streamdown } from "streamdown";
 import { PredictionChart } from "@/components/PredictionChart";
+import { DataPreview } from "@/components/DataPreview";
 import {
   BarChart,
   Bar,
@@ -170,10 +171,11 @@ export default function DatasetDetail() {
         )}
 
         <Tabs defaultValue="analysis" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="analysis">AI Analysis</TabsTrigger>
             <TabsTrigger value="visualization">Visualizations</TabsTrigger>
             <TabsTrigger value="prediction">Predictions</TabsTrigger>
+            <TabsTrigger value="preview">Preview</TabsTrigger>
             <TabsTrigger value="columns">Columns</TabsTrigger>
           </TabsList>
 
@@ -413,6 +415,12 @@ export default function DatasetDetail() {
 
           <TabsContent value="prediction" className="space-y-6">
             <PredictionChart datasetId={datasetId} column={yAxisValue || columnNames[0]} />
+          </TabsContent>
+
+          <TabsContent value="preview" className="space-y-6">
+            {visualizationData && (
+              <DataPreview data={visualizationData.slice(0, 20)} piiColumns={piiColumns} maxRows={20} />
+            )}
           </TabsContent>
 
           <TabsContent value="columns" className="space-y-6">

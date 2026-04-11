@@ -5,7 +5,7 @@
 ### Authentication & RBAC
 - [x] User authentication with role-based access control (Admin, Analyst, Viewer)
 - [x] Login/logout flows with Manus OAuth
-- [ ] Role-based procedure protection and frontend route guards
+- [x] Role-based procedure protection and frontend route guards
 
 ### File Upload & Storage
 - [x] Secure CSV/Excel file upload system
@@ -17,7 +17,7 @@
 - [x] Automatic PII detection (email, phone, SSN, credit card patterns, name/address fields)
 - [x] AES-256 encryption for sensitive data
 - [x] Data anonymization pipeline
-- [ ] Secure data preview without exposing raw PII
+- [x] Secure data preview without exposing raw PII
 
 ### Data Processing
 - [x] Data cleaning pipeline (duplicate removal, missing value handling)
@@ -52,7 +52,7 @@
 ### Frontend UI
 - [x] Elegant, modern design system
 - [x] Responsive layout for all screen sizes
-- [ ] Dashboard layout with sidebar navigation
+- [x] Dashboard layout with sidebar navigation
 - [x] Loading states and error handling
 - [x] Empty states and helpful guidance
 
