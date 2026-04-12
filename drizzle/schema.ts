@@ -41,6 +41,7 @@ export const datasets = mysqlTable("datasets", {
   columnNames: json("columnNames"), // JSON array of column names
   isAnonymized: boolean("isAnonymized").default(false),
   piiColumns: json("piiColumns"), // JSON array of detected PII columns
+  processedData: json("processedData"), // JSON array of processed data rows
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

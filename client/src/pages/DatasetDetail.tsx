@@ -43,6 +43,11 @@ export default function DatasetDetail() {
     { enabled: !!datasetId && isAuthenticated }
   );
 
+  const { data: datasetData, isLoading: dataLoading } = trpc.datasets.getData.useQuery(
+    { id: datasetId!, limit: 100 },
+    { enabled: !!datasetId && isAuthenticated }
+  );
+
   const analysisMutation = trpc.analysis.query.useMutation({
     onSuccess: (data) => {
       setAnalysisResult(typeof data.result === 'string' ? data.result : JSON.stringify(data.result));
@@ -73,7 +78,7 @@ export default function DatasetDetail() {
     return <div className="min-h-screen flex items-center justify-center">Dataset not found</div>;
   }
 
-  const piiColumns = (dataset.piiColumns as string[]) || [];
+  const piiColumns = (datasetData?.piiColumns as string[]) || (dataset?.piiColumns as string[]) || [];
   const columnNames = (dataset.columnNames as string[]) || [];
   const numericColumns = columnNames.filter((col) => !piiColumns.includes(col));
 
@@ -81,8 +86,8 @@ export default function DatasetDetail() {
   const xAxisValue = selectedXAxis || columnNames[0] || "";
   const yAxisValue = selectedYAxis || numericColumns[0] || "";
 
-  // Generate sample visualization data
-  const visualizationData = Array.from({ length: 10 }, (_, i) => ({
+  // Use real data from backend or generate sample if not available
+  const visualizationData = (datasetData?.data as Record<string, any>[]) || Array.from({ length: 10 }, (_, i) => ({
     [xAxisValue || "Item"]: `Item ${i + 1}`,
     ...numericColumns.reduce((acc, col) => {
       acc[col] = Math.floor(Math.random() * 100) + 10;

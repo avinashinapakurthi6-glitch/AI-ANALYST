@@ -28,7 +28,7 @@ export const datasetsRouter = router({
         const fileKey = `datasets/${ctx.user.id}/${Date.now()}-${input.fileName}`;
         const { url: fileUrl } = await storagePut(fileKey, fileBuffer, 'application/octet-stream');
 
-        // Create dataset record
+        // Create dataset record with processed data
         const result = await createDataset({
           name: input.name,
           description: input.description,
@@ -42,6 +42,7 @@ export const datasetsRouter = router({
           columnCount: processed.columnCount,
           columnNames: processed.columns,
           piiColumns: processed.piiColumns,
+          processedData: processed.rows as any,
           isAnonymized: false,
         });
 
@@ -114,6 +115,27 @@ export const datasetsRouter = router({
       }
       await deleteDataset(input.id);
       return { success: true };
+    }),
+
+  /**
+   * Get dataset data for visualization
+   */
+  getData: protectedProcedure
+    .input(z.object({ id: z.number(), limit: z.number().default(100) }))
+    .query(async ({ ctx, input }) => {
+      const dataset = await getDatasetById(input.id);
+      if (!dataset) throw new Error('Dataset not found');
+      if (dataset.ownerId !== ctx.user.id && ctx.user.role !== 'admin') {
+        throw new Error('Unauthorized');
+      }
+
+      // Return the processed data that was stored
+      // In a real app, you'd fetch from S3 or a data cache
+      return {
+        data: (dataset as any).processedData || [],
+        columns: dataset.columnNames || [],
+        piiColumns: dataset.piiColumns || [],
+      };
     }),
 
   /**
