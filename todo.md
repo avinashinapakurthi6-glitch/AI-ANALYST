@@ -11,7 +11,7 @@
 - [x] Secure CSV/Excel file upload system
 - [x] S3-based storage with encryption at rest
 - [x] Local file metadata tracking in database
-- [ ] File deletion and lifecycle management
+- [x] File deletion and lifecycle management
 
 ### Data Security & Privacy
 - [x] Automatic PII detection (email, phone, SSN, credit card patterns, name/address fields)
@@ -21,33 +21,33 @@
 
 ### Data Processing
 - [x] Data cleaning pipeline (duplicate removal, missing value handling)
-- [ ] Data preprocessing and normalization
-- [ ] Real-time data preview
-- [ ] Processed vs raw data comparison views
+- [x] Data preprocessing and normalization
+- [x] Real-time data preview
+- [x] Processed vs raw data comparison views
 
 ### AI Analysis
 - [x] Natural language query interface
 - [x] LLM integration for data insights
-- [ ] Complex query handling and trend analysis
-- [ ] Automated insight generation
+- [x] Complex query handling and trend analysis
+- [x] Automated insight generation
 
 ### Dashboard & Visualization
 - [x] Interactive Plotly dashboard
 - [x] Chart types: bar, scatter, line, histogram
 - [x] Customizable chart parameters
-- [ ] Real-time data updates
+- [x] Real-time data updates
 
 ### Dataset Management
 - [x] Dataset metadata tracking (owner, creation date, description)
 - [x] Dataset listing and filtering
 - [x] Dataset details view
-- [ ] Dataset sharing and access control
+- [x] Dataset sharing and access control
 
 ### Notifications
 - [x] Owner notifications for new uploads
-- [ ] PII detection alerts
+- [x] PII detection alerts
 - [x] Analysis completion notifications
-- [ ] Notification history
+- [x] Notification history
 
 ### Frontend UI
 - [x] Elegant, modern design system
@@ -66,7 +66,6 @@
 - [x] Phase 6: Testing and optimization
 - [x] Phase 7: Deployment
 
-
 ## ML Prediction Features
 
 - [x] Machine learning-based time series forecasting
@@ -75,17 +74,12 @@
 - [x] Multiple forecasting models (Linear, Exponential, Moving Average)
 - [x] Prediction accuracy metrics
 
-
 ## Bug Fixes & Improvements
 
-<<<<<<< Updated upstream
 - [x] Fix visualization to use actual dataset values instead of mock data
 - [x] Fix predictions to use real time series data from uploaded datasets
 - [x] Ensure all charts display correct data from selected columns
 - [x] Verify data accuracy in visualizations matches source data
-=======
-- [ ] Fix visualization to use actual dataset values instead of mock data
-- [ ] Fix predictions to use real time series data from uploaded datasets
-- [ ] Ensure all charts display correct data from selected columns
-- [ ] Verify data accuracy in visualizations matches source data
->>>>>>> Stashed changes
+- [x] Fix all button functionality (Upload, Analyze, Run Analysis, Generate Forecast)
+- [x] Ensure analysis uses actual dataset rows in LLM prompt
+- [x] Fix numeric value extraction in predictions
