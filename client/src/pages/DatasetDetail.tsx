@@ -82,18 +82,12 @@ export default function DatasetDetail() {
   const columnNames = (dataset.columnNames as string[]) || [];
   const numericColumns = columnNames.filter((col) => !piiColumns.includes(col));
 
-  // Initialize defaults
+  // Initialize defaults - use selected axes if available, otherwise use first available columns
   const xAxisValue = selectedXAxis || columnNames[0] || "";
   const yAxisValue = selectedYAxis || numericColumns[0] || "";
 
-  // Use real data from backend or generate sample if not available
-  const visualizationData = (datasetData?.data as Record<string, any>[]) || Array.from({ length: 10 }, (_, i) => ({
-    [xAxisValue || "Item"]: `Item ${i + 1}`,
-    ...numericColumns.reduce((acc, col) => {
-      acc[col] = Math.floor(Math.random() * 100) + 10;
-      return acc;
-    }, {} as Record<string, number>),
-  }));
+  // Use ONLY real data from backend - no fallback to random data
+  const visualizationData = (datasetData?.data as Record<string, any>[]) || [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8">
@@ -337,62 +331,78 @@ export default function DatasetDetail() {
                   </div>
                 </div>
 
-                <div className="w-full h-96 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-4 border border-slate-200">
-                  <ResponsiveContainer width="100%" height="100%">
-                    {chartType === "bar" ? (
-                      <BarChart data={visualizationData.slice(0, 50)}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                        <XAxis dataKey={xAxisValue} />
-                        <YAxis />
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}
-                        />
-                        <Legend />
-                        <Bar dataKey={yAxisValue} fill="#3b82f6" radius={[8, 8, 0, 0]} />
-                      </BarChart>
-                    ) : chartType === "line" ? (
-                      <LineChart data={visualizationData.slice(0, 50)}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                        <XAxis dataKey={xAxisValue} />
-                        <YAxis />
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}
-                        />
-                        <Legend />
-                        <Line 
-                          type="monotone" 
-                          dataKey={yAxisValue} 
-                          stroke="#3b82f6" 
-                          strokeWidth={2}
-                          dot={{ fill: '#3b82f6', r: 4 }}
-                          activeDot={{ r: 6 }}
-                        />
-                      </LineChart>
-                    ) : (
-                      <PieChart>
-                        <Pie
-                          data={visualizationData.slice(0, 10)}
-                          dataKey={yAxisValue}
-                          nameKey={xAxisValue}
-                          cx="50%"
-                          cy="50%"
-                          outerRadius={100}
-                          label
-                        >
-                          {visualizationData.map((_, index) => (
-                            <Cell 
-                              key={`cell-${index}`} 
-                              fill={['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6', '#f97316', '#6366f1'][index % 10]} 
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}
-                        />
-                      </PieChart>
-                    )}
-                  </ResponsiveContainer>
-                </div>
+                {!xAxisValue || !yAxisValue ? (
+                  <div className="w-full h-96 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-4 border border-slate-200 flex items-center justify-center">
+                    <div className="text-center">
+                      <BarChart3 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                      <p className="text-slate-600 font-medium">Please select both X and Y axes to display the chart</p>
+                    </div>
+                  </div>
+                ) : visualizationData.length === 0 ? (
+                  <div className="w-full h-96 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-4 border border-slate-200 flex items-center justify-center">
+                    <div className="text-center">
+                      <Loader2 className="w-12 h-12 text-slate-300 mx-auto mb-3 animate-spin" />
+                      <p className="text-slate-600 font-medium">Loading data...</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full h-96 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-4 border border-slate-200">
+                    <ResponsiveContainer width="100%" height="100%">
+                      {chartType === "bar" ? (
+                        <BarChart data={visualizationData.slice(0, 50)}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis dataKey={xAxisValue} />
+                          <YAxis />
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                          />
+                          <Legend />
+                          <Bar dataKey={yAxisValue} fill="#3b82f6" radius={[8, 8, 0, 0]} />
+                        </BarChart>
+                      ) : chartType === "line" ? (
+                        <LineChart data={visualizationData.slice(0, 50)}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                          <XAxis dataKey={xAxisValue} />
+                          <YAxis />
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                          />
+                          <Legend />
+                          <Line 
+                            type="monotone" 
+                            dataKey={yAxisValue} 
+                            stroke="#3b82f6" 
+                            strokeWidth={2}
+                            dot={{ fill: '#3b82f6', r: 4 }}
+                            activeDot={{ r: 6 }}
+                          />
+                        </LineChart>
+                      ) : (
+                        <PieChart>
+                          <Pie
+                            data={visualizationData.slice(0, 10)}
+                            dataKey={yAxisValue}
+                            nameKey={xAxisValue}
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={100}
+                            label
+                          >
+                            {visualizationData.map((_, index) => (
+                              <Cell 
+                                key={`cell-${index}`} 
+                                fill={['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6', '#f97316', '#6366f1'][index % 10]} 
+                              />
+                            ))}
+                          </Pie>
+                          <Tooltip 
+                            contentStyle={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}
+                          />
+                        </PieChart>
+                      )}
+                    </ResponsiveContainer>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
