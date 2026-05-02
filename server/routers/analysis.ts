@@ -27,12 +27,30 @@ export const analysisRouter = router({
       try {
         const columns = (dataset.columnNames as string[]) || [];
         const columnInfo = columns.join(', ');
-        const prompt = `Data analysis for columns: ${columnInfo}. Dataset has ${dataset.rowCount} rows. User query: ${input.query}`;
+        
+        // Get the actual processed data
+        const processedData = dataset.processedData as any[] || [];
+        let dataPreview = '';
+        
+        if (processedData.length > 0) {
+          // Create a formatted data preview for the LLM
+          dataPreview = '\n\nDataset Preview:\n';
+          dataPreview += 'Columns: ' + columns.join(', ') + '\n';
+          dataPreview += '\nData rows:\n';
+          
+          // Add all rows to the preview
+          processedData.forEach((row: any, index: number) => {
+            const rowStr = columns.map(col => `${col}: ${row[col]}`).join(', ');
+            dataPreview += `Row ${index + 1}: ${rowStr}\n`;
+          });
+        }
+        
+        const prompt = `Data analysis for columns: ${columnInfo}. Dataset has ${dataset.rowCount} rows.${dataPreview}\n\nUser query: ${input.query}`;
         const response = await invokeLLM({
           messages: [
             {
               role: 'system',
-              content: 'You are a professional data analyst.',
+              content: 'You are a professional data analyst. Analyze the provided dataset and answer the user\'s query based on the actual data shown. Provide specific numbers and insights from the data.',
             },
             {
               role: 'user',

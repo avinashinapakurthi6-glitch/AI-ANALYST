@@ -78,7 +78,14 @@
 
 ## Bug Fixes & Improvements
 
+<<<<<<< Updated upstream
 - [x] Fix visualization to use actual dataset values instead of mock data
 - [x] Fix predictions to use real time series data from uploaded datasets
 - [x] Ensure all charts display correct data from selected columns
 - [x] Verify data accuracy in visualizations matches source data
+=======
+- [ ] Fix visualization to use actual dataset values instead of mock data
+- [ ] Fix predictions to use real time series data from uploaded datasets
+- [ ] Ensure all charts display correct data from selected columns
+- [ ] Verify data accuracy in visualizations matches source data
+>>>>>>> Stashed changes
