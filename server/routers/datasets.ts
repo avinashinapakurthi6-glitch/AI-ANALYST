@@ -139,6 +139,79 @@ export const datasetsRouter = router({
     }),
 
   /**
+   * Filter dataset rows based on conditions
+   */
+  filter: protectedProcedure
+    .input(z.object({
+      id: z.number(),
+      filters: z.array(z.object({
+        column: z.string(),
+        operator: z.enum(['equals', 'not_equals', 'contains', 'gt', 'lt', 'gte', 'lte', 'between', 'in']),
+        value: z.union([z.string(), z.number(), z.array(z.number()).length(2)]),
+      })),
+    }))
+    .query(async ({ ctx, input }) => {
+      const dataset = await getDatasetById(input.id);
+      if (!dataset) throw new Error('Dataset not found');
+      if (dataset.ownerId !== ctx.user.id && ctx.user.role !== 'admin') {
+        throw new Error('Unauthorized');
+      }
+
+      let data = (dataset as any).processedData || [];
+      if (typeof data === 'string') {
+        try {
+          data = JSON.parse(data);
+        } catch (e) {
+          console.error('Failed to parse processedData:', e);
+          data = [];
+        }
+      }
+
+      // Apply filters
+      const filteredData = data.filter((row: Record<string, any>) => {
+        return input.filters.every((filter) => {
+          const value = row[filter.column];
+          if (value === null || value === undefined) return false;
+
+          switch (filter.operator) {
+            case 'equals':
+              return String(value).toLowerCase() === String(filter.value).toLowerCase();
+            case 'not_equals':
+              return String(value).toLowerCase() !== String(filter.value).toLowerCase();
+            case 'contains':
+              return String(value).toLowerCase().includes(String(filter.value).toLowerCase());
+            case 'gt':
+              return Number(value) > Number(filter.value);
+            case 'lt':
+              return Number(value) < Number(filter.value);
+            case 'gte':
+              return Number(value) >= Number(filter.value);
+            case 'lte':
+              return Number(value) <= Number(filter.value);
+            case 'between': {
+              const [min, max] = filter.value as [number, number];
+              return Number(value) >= min && Number(value) <= max;
+            }
+            case 'in': {
+              const values = String(filter.value).split(',').map((v) => v.trim().toLowerCase());
+              return values.includes(String(value).toLowerCase());
+            }
+            default:
+              return true;
+          }
+        });
+      });
+
+      return {
+        data: filteredData,
+        columns: dataset.columnNames || [],
+        piiColumns: dataset.piiColumns || [],
+        totalRows: data.length,
+        filteredRows: filteredData.length,
+      };
+    }),
+
+  /**
    * Anonymize dataset columns
    */
   anonymize: protectedProcedure

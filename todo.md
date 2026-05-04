@@ -83,3 +83,14 @@
 - [x] Fix all button functionality (Upload, Analyze, Run Analysis, Generate Forecast)
 - [x] Ensure analysis uses actual dataset rows in LLM prompt
 - [x] Fix numeric value extraction in predictions
+
+## Advanced Features
+
+### Advanced Filtering
+- [x] Create DataFilter component with column selection and operators
+- [x] Implement filter operators (equals, contains, greater than, less than, between, in)
+- [x] Add backend filtering endpoint in datasets router
+- [x] Integrate filtering into DatasetDetail visualization page
+- [x] Add filter UI to visualization tab with clear/apply buttons
+- [x] Test filtering with different data types and operators (18 vitest tests pass)
+- [x] Display filtered row count and statistics
