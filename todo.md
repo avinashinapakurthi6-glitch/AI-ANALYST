@@ -94,3 +94,10 @@
 - [x] Add filter UI to visualization tab with clear/apply buttons
 - [x] Test filtering with different data types and operators (18 vitest tests pass)
 - [x] Display filtered row count and statistics
+
+
+## Bug Reports
+
+- [x] Filtering displays wrong data on user-uploaded datasets (Fixed: removed stale closure and impossible condition)
+- [x] Filter row count shows incorrect values (Fixed: using useEffect to sync filtered data)
+- [x] Charts not updating correctly when filters are applied (Fixed: proper data synchronization)

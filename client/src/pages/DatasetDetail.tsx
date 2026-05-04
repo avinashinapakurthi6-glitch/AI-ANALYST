@@ -39,6 +39,7 @@ export default function DatasetDetail() {
   const [selectedXAxis, setSelectedXAxis] = useState<string>("");
   const [selectedYAxis, setSelectedYAxis] = useState<string>("");
   const [filteredData, setFilteredData] = useState<Record<string, any>[]>([]);
+  const [hasActiveFilters, setHasActiveFilters] = useState(false);
 
   const { data: dataset, isLoading: datasetLoading } = trpc.datasets.get.useQuery(
     { id: datasetId! },
@@ -295,7 +296,10 @@ export default function DatasetDetail() {
                   <DataFilter
                     columns={columnNames}
                     data={visualizationData}
-                    onFilterChange={(filtered) => setFilteredData(filtered)}
+                    onFilterChange={(filtered) => {
+                      setFilteredData(filtered);
+                      setHasActiveFilters(filtered.length < visualizationData.length && filtered.length > 0);
+                    }}
                   />
                 )}
 
@@ -349,13 +353,6 @@ export default function DatasetDetail() {
                       <p className="text-slate-600 font-medium">Please select both X and Y axes to display the chart</p>
                     </div>
                   </div>
-                ) : (filteredData.length === 0 && filteredData.length > 0) ? (
-                  <div className="w-full h-96 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-4 border border-slate-200 flex items-center justify-center">
-                    <div className="text-center">
-                      <BarChart3 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                      <p className="text-slate-600 font-medium">No data matches your filters</p>
-                    </div>
-                  </div>
                 ) : visualizationData.length === 0 ? (
                   <div className="w-full h-96 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-4 border border-slate-200 flex items-center justify-center">
                     <div className="text-center">
@@ -363,11 +360,18 @@ export default function DatasetDetail() {
                       <p className="text-slate-600 font-medium">Loading data...</p>
                     </div>
                   </div>
+                ) : hasActiveFilters && filteredData.length === 0 ? (
+                  <div className="w-full h-96 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-4 border border-slate-200 flex items-center justify-center">
+                    <div className="text-center">
+                      <BarChart3 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                      <p className="text-slate-600 font-medium">No data matches your filters</p>
+                    </div>
+                  </div>
                 ) : (
                   <div className="w-full h-96 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-4 border border-slate-200">
                     <ResponsiveContainer width="100%" height="100%">
                       {chartType === "bar" ? (
-                        <BarChart data={(filteredData.length > 0 ? filteredData : visualizationData).slice(0, 50)}>
+                        <BarChart data={visualizationData.slice(0, 50)}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                           <XAxis dataKey={xAxisValue} />
                           <YAxis />
@@ -378,7 +382,7 @@ export default function DatasetDetail() {
                           <Bar dataKey={yAxisValue} fill="#3b82f6" radius={[8, 8, 0, 0]} />
                         </BarChart>
                       ) : chartType === "line" ? (
-                        <LineChart data={(filteredData.length > 0 ? filteredData : visualizationData).slice(0, 50)}>
+                        <LineChart data={visualizationData.slice(0, 50)}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                           <XAxis dataKey={xAxisValue} />
                           <YAxis />
@@ -398,7 +402,7 @@ export default function DatasetDetail() {
                       ) : (
                         <PieChart>
                           <Pie
-                            data={(filteredData.length > 0 ? filteredData : visualizationData).slice(0, 10)}
+                            data={visualizationData.slice(0, 10)}
                             dataKey={yAxisValue}
                             nameKey={xAxisValue}
                             cx="50%"
@@ -406,7 +410,7 @@ export default function DatasetDetail() {
                             outerRadius={100}
                             label
                           >
-                            {(filteredData.length > 0 ? filteredData : visualizationData).map((_, index) => (
+                            {visualizationData.map((_, index) => (
                               <Cell 
                                 key={`cell-${index}`} 
                                 fill={['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#14b8a6', '#f97316', '#6366f1'][index % 10]} 

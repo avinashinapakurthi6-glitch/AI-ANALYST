@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { X, Plus, Filter } from "lucide-react";
@@ -30,92 +30,61 @@ const OPERATORS: { value: FilterOperator; label: string }[] = [
   { value: "in", label: "In List" },
 ];
 
+// Helper function to apply filters
+const applyFilters = (filters: FilterCondition[], dataToFilter: Record<string, any>[]) => {
+  if (filters.length === 0) return dataToFilter;
+
+  return dataToFilter.filter((row) => {
+    return filters.every((filter) => {
+      const value = row[filter.column];
+      if (value === null || value === undefined) return false;
+
+      switch (filter.operator) {
+        case "equals":
+          return String(value).toLowerCase() === String(filter.value).toLowerCase();
+        case "not_equals":
+          return String(value).toLowerCase() !== String(filter.value).toLowerCase();
+        case "contains":
+          return String(value).toLowerCase().includes(String(filter.value).toLowerCase());
+        case "gt":
+          return Number(value) > Number(filter.value);
+        case "lt":
+          return Number(value) < Number(filter.value);
+        case "gte":
+          return Number(value) >= Number(filter.value);
+        case "lte":
+          return Number(value) <= Number(filter.value);
+        case "between": {
+          const [min, max] = filter.value as [number, number];
+          return Number(value) >= min && Number(value) <= max;
+        }
+        case "in": {
+          const values = String(filter.value).split(",").map((v) => v.trim().toLowerCase());
+          return values.includes(String(value).toLowerCase());
+        }
+        default:
+          return true;
+      }
+    });
+  });
+};
+
 export function DataFilter({ columns, data, onFilterChange }: DataFilterProps) {
   const [filters, setFilters] = useState<FilterCondition[]>([]);
   const [showFilters, setShowFilters] = useState(false);
 
   // Apply filters to data
   const filteredData = useMemo(() => {
-    if (filters.length === 0) return data;
-
-    return data.filter((row) => {
-      return filters.every((filter) => {
-        const value = row[filter.column];
-        if (value === null || value === undefined) return false;
-
-        switch (filter.operator) {
-          case "equals":
-            return String(value).toLowerCase() === String(filter.value).toLowerCase();
-          case "not_equals":
-            return String(value).toLowerCase() !== String(filter.value).toLowerCase();
-          case "contains":
-            return String(value).toLowerCase().includes(String(filter.value).toLowerCase());
-          case "gt":
-            return Number(value) > Number(filter.value);
-          case "lt":
-            return Number(value) < Number(filter.value);
-          case "gte":
-            return Number(value) >= Number(filter.value);
-          case "lte":
-            return Number(value) <= Number(filter.value);
-          case "between": {
-            const [min, max] = filter.value as [number, number];
-            return Number(value) >= min && Number(value) <= max;
-          }
-          case "in": {
-            const values = String(filter.value).split(",").map((v) => v.trim().toLowerCase());
-            return values.includes(String(value).toLowerCase());
-          }
-          default:
-            return true;
-        }
-      });
-    });
+    return applyFilters(filters, data);
   }, [filters, data]);
 
-  // Notify parent of filtered data
+  // Notify parent whenever filtered data changes
+  useEffect(() => {
+    onFilterChange(filteredData);
+  }, [filteredData, onFilterChange]);
+
   const handleFilterChange = (newFilters: FilterCondition[]) => {
     setFilters(newFilters);
-    // Apply filters and notify parent
-    if (newFilters.length === 0) {
-      onFilterChange(data);
-    } else {
-      // Compute filtered data inline to avoid stale closure
-      const result = data.filter((row) => {
-        return newFilters.every((filter) => {
-          const value = row[filter.column];
-          if (value === null || value === undefined) return false;
-
-          switch (filter.operator) {
-            case 'equals':
-              return String(value).toLowerCase() === String(filter.value).toLowerCase();
-            case 'not_equals':
-              return String(value).toLowerCase() !== String(filter.value).toLowerCase();
-            case 'contains':
-              return String(value).toLowerCase().includes(String(filter.value).toLowerCase());
-            case 'gt':
-              return Number(value) > Number(filter.value);
-            case 'lt':
-              return Number(value) < Number(filter.value);
-            case 'gte':
-              return Number(value) >= Number(filter.value);
-            case 'lte':
-              return Number(value) <= Number(filter.value);
-            case 'between': {
-              const [min, max] = filter.value as [number, number];
-              return Number(value) >= min && Number(value) <= max;
-            }
-            case 'in': {
-              const values = String(filter.value).split(',').map((v) => v.trim().toLowerCase());
-              return values.includes(String(value).toLowerCase());
-            }
-            default:
-              return true;
-          }
-        });
-      });
-      onFilterChange(result);
-    }
   };
 
   const addFilter = () => {
