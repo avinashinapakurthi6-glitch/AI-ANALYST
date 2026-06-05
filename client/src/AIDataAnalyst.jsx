@@ -296,10 +296,6 @@ export default function AIDataAnalyst() {
   }
 
   async function generateInsights() {
-    if (!apiKey) {
-      setInsights(["Set your OpenAI API key to enable auto insights."]);
-      return;
-    }
     setInsightsLoading(true);
     setError(null);
     try {
@@ -389,11 +385,10 @@ export default function AIDataAnalyst() {
     setChat((c) => [...c, { role: "user", text: userText }]);
     setQuery("");
     try {
-      if (!apiKey) throw new Error("Set OpenAI API key first.");
       const sample = rows.slice(0, 50);
       const userMessage = `Data: ${JSON.stringify(sample)}\n\nQuestion: ${userText}`;
       const prompt = `System: ${SYSTEM_PROMPT}\n\nUser: ${userMessage}`;
-      const text = await callOpenAI(apiKey, prompt, 1000);
+      const text = await callOpenAI(null, prompt, 1000);
       let parsed;
       try {
         parsed = JSON.parse(text);
@@ -639,7 +634,7 @@ export default function AIDataAnalyst() {
 
       <footer className="p-4 text-sm text-slate-400 text-center">
         <div>
-          Built with OpenAI (model: {OPENAI_MODEL}). API calls are made from your browser. Paste your OpenAI API key above.
+          Built with OpenAI (model: {OPENAI_MODEL}). API calls are proxied through the server using the configured OpenAI key.
         </div>
         {error && <div className="mt-2 text-red-400">{error}</div>}
       </footer>
