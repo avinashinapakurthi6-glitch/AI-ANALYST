@@ -90,6 +90,33 @@ async function startServer() {
     }
   });
 
+  // Gemini proxy endpoint to avoid CORS
+  app.post("/api/gemini", async (req, res) => {
+    try {
+      const apiKey = req.headers["x-api-key"] || process.env.GEMINI_API_KEY;
+      const geminiUrl = process.env.GEMINI_URL;
+      if (!apiKey || !geminiUrl) {
+        res.status(400).json({ error: "GEMINI_API_KEY and GEMINI_URL must be set in the server environment or provide x-api-key header and GEMINI_URL." });
+        return;
+      }
+
+      const response = await fetch(geminiUrl, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(req.body),
+      });
+
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (err: any) {
+      console.error("Gemini API Proxy Error:", err);
+      res.status(500).json({ error: err.message || "Internal Server Error" });
+    }
+  });
+
   // tRPC API
   app.use(
     "/api/trpc",

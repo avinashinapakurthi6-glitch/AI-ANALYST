@@ -90,7 +90,7 @@ export default function AiAnalyst() {
   // App State
 
   const [useProxy, setUseProxy] = useState<boolean>(() => localStorage.getItem("openai_use_proxy") === "true" || true);
-  const [customEndpoint, setCustomEndpoint] = useState<string>(() => localStorage.getItem("openai_custom_endpoint") || "/api/openai");
+  const [customEndpoint, setCustomEndpoint] = useState<string>(() => localStorage.getItem("gemini_custom_endpoint") || "/api/gemini");
   const [showSettings, setShowSettings] = useState<boolean>(false);
   
   // Data State
@@ -113,8 +113,8 @@ export default function AiAnalyst() {
 
   // Save Settings to LocalStorage
   useEffect(() => {
-    localStorage.setItem("openai_use_proxy", useProxy ? "true" : "false");
-    localStorage.setItem("openai_custom_endpoint", customEndpoint);
+    localStorage.setItem("gemini_use_proxy", useProxy ? "true" : "false");
+    localStorage.setItem("gemini_custom_endpoint", customEndpoint);
   }, [useProxy, customEndpoint]);
 
   // Scroll to bottom of chat
@@ -269,7 +269,7 @@ export default function AiAnalyst() {
     generateInitialInsights(data.slice(0, 50), columns);
   };
 
-  // Helper to construct OpenAI payload
+  // Helper to construct Gemini / generic LLM payload
   const callOpenAIAPI = async (systemPrompt: string, userMessage: string) => {
     const targetUrl = useProxy ? customEndpoint : "https://api.openai.com/v1/chat/completions";
 
@@ -644,7 +644,7 @@ Question: ${userQuery}`;
                 ? "bg-blue-500/10 border-blue-500/40 text-blue-400" 
                 : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-100 hover:bg-slate-850"
             }`}
-            title="Configure OpenAI API Settings"
+            title="Configure Gemini API Settings"
           >
             <Settings className="w-5 h-5" />
           </button>
@@ -667,7 +667,7 @@ Question: ${userQuery}`;
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-md font-bold text-slate-200 flex items-center gap-2 uppercase tracking-wider font-mono">
                     <Key className="w-4 h-4 text-blue-500" />
-                    OpenAI API Configuration
+                    Gemini API Configuration
                   </h3>
                   <button 
                     onClick={() => setShowSettings(false)}

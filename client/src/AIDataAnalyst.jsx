@@ -75,7 +75,7 @@ function sampleFirst(rows = [], n = 10) {
 }
 
 async function callOpenAI(_apiKey, prompt, maxTokens = 800) {
-  // Only proxy-based calls are used. The server reads OPENAI_API_KEY from environment.
+  // Only proxy-based calls are used. The server reads GEMINI_API_KEY and GEMINI_URL from environment.
   const proxyBody = {
     model: OPENAI_MODEL,
     messages: [
@@ -85,7 +85,7 @@ async function callOpenAI(_apiKey, prompt, maxTokens = 800) {
     max_tokens: maxTokens,
   };
 
-  const proxyRes = await fetch("/api/openai", {
+  const proxyRes = await fetch("/api/gemini", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(proxyBody),
@@ -100,6 +100,7 @@ async function callOpenAI(_apiKey, prompt, maxTokens = 800) {
   const text = data.choices && data.choices[0] && (data.choices[0].message?.content || data.choices[0].text) || data.text || JSON.stringify(data);
   return typeof text === "string" ? text : JSON.stringify(text);
 }
+
 
 export default function AIDataAnalyst() {
   // Using server-side OpenAI API key via /api/openai proxy (no client key required)
@@ -352,7 +353,7 @@ export default function AIDataAnalyst() {
       const sample = rows.slice(0, 50);
       const overallMessage = `Data: ${JSON.stringify(sample)}\n\nQuestion: Provide 3-5 concise bullet-point insights about the dataset (e.g., top regions, outliers, strong trends, notable averages). Return only bullets or a JSON array of strings.`;
       const overallPrompt = `System: ${SYSTEM_PROMPT}\n\nUser: ${overallMessage}`;
-      const overallText = await callOpenAI(apiKey, overallPrompt, 600);
+      const overallText = await callOpenAI(null, overallPrompt, 600);
       let overallBullets = [];
       try {
         const parsed = JSON.parse(overallText);
@@ -389,7 +390,7 @@ export default function AIDataAnalyst() {
         const segMessage = `Data: ${JSON.stringify(sample)}\n\nQuestion: Provide segmented insights grouped by the column \"${seg}\". For each distinct value in \"${seg}\" provide 2 concise bullet points describing count, notable averages (for numeric columns), and any outliers or strong signals. Return bullets grouped under headings like \"${seg}: VALUE\".`;
         const segPrompt = `System: ${SYSTEM_PROMPT}\n\nUser: ${segMessage}`;
         try {
-          const segText = await callOpenAI(apiKey, segPrompt, 800);
+          const segText = await callOpenAI(null, segPrompt, 800);
           const parts = segText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
           segmentedResults.push(`By ${seg}:`);
           for (const p of parts.slice(0, 20)) segmentedResults.push(p);
@@ -412,7 +413,7 @@ export default function AIDataAnalyst() {
       // If API failed due to billing/quota or proxy, fallback to local insights
       const msg = String(err || "");
       if (msg.includes("credit balance") || msg.includes("Proxy API error 400") || msg.includes("invalid_request_error")) {
-        setError("OpenAI API unavailable (billing/quota) or proxy error. Showing local insights instead.");
+        setError("Gemini API unavailable (billing/quota) or proxy error. Showing local insights instead.");
         const local = computeLocalInsights(rows);
         setInsights(local);
       } else {
@@ -474,11 +475,11 @@ export default function AIDataAnalyst() {
       if (msg.includes('Proxy API error 429') || msg.toLowerCase().includes('insufficient_quota') || msg.toLowerCase().includes('quota')) {
         const chartConfig = buildFallbackChart(rows, types, userText);
         if (chartConfig) {
-          setChat((c) => [...c, { role: "ai", text: "OpenAI quota exceeded — showing a local auto-generated chart based on your data.", chartConfig }]);
+          setChat((c) => [...c, { role: "ai", text: "Gemini quota exceeded — showing a local auto-generated chart based on your data.", chartConfig }]);
           setChartFade(false);
           setTimeout(() => setChartFade(true), 50);
         } else {
-          setChat((c) => [...c, { role: "ai", text: "OpenAI quota exceeded and no suitable columns for a fallback chart were found.", chartConfig: null }]);
+          setChat((c) => [...c, { role: "ai", text: "Gemini quota exceeded and no suitable columns for a fallback chart were found.", chartConfig: null }]);
         }
       } else {
         setChat((c) => [...c, { role: "ai", text: "Error: " + String(err), chartConfig: null }]);
@@ -568,7 +569,7 @@ export default function AIDataAnalyst() {
         </div>
 
         <div className="flex items-center space-x-3">
-          <div className="text-sm text-slate-400">Using server-side OpenAI key via proxy (/api/openai)</div>
+          <div className="text-sm text-slate-400">Using server-side Gemini key via proxy (/api/gemini)</div>
         </div>
       </header>
 
@@ -697,7 +698,7 @@ export default function AIDataAnalyst() {
 
       <footer className="p-4 text-sm text-slate-400 text-center">
         <div>
-          Built with OpenAI (model: {OPENAI_MODEL}). API calls are proxied through the server using the configured OpenAI key.
+          Built with Gemini. API calls are proxied through the server using the configured Gemini key.
         </div>
         {error && <div className="mt-2 text-red-400">{error}</div>}
       </footer>
