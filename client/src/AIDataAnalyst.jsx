@@ -295,6 +295,56 @@ export default function AIDataAnalyst() {
     return out.slice(0, 30);
   }
 
+  // Build a simple fallback chart config from local data when LLM is unavailable
+  function buildFallbackChart(rows, types, query) {
+    if (!rows || rows.length === 0) return null;
+    const numericCols = Object.keys(types).filter(k => types[k] === 'number');
+    const dateCols = Object.keys(types).filter(k => types[k] === 'date' || /date|time/i.test(k));
+    const stringCols = Object.keys(types).filter(k => types[k] === 'string');
+
+    // Time-series fallback (month aggregation)
+    if (dateCols.length && numericCols.length) {
+      const dateKey = dateCols[0];
+      const numKey = numericCols[0];
+      const groups = {};
+      for (const r of rows) {
+        const d = new Date(r[dateKey]);
+        if (isNaN(d)) continue;
+        const m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const v = Number(String(r[numKey]).replace(/[, $%]/g, ''));
+        if (isNaN(v)) continue;
+        groups[m] = (groups[m] || 0) + v;
+      }
+      const data = Object.entries(groups).map(([k, v]) => ({ [dateKey]: k, [numKey]: v })).sort((a, b) => a[dateKey] > b[dateKey] ? 1 : -1);
+      if (data.length) return { type: 'line', title: `${numKey} over time (${dateKey})`, xKey: dateKey, yKey: numKey, data };
+    }
+
+    // Categorical aggregation fallback
+    if (stringCols.length && numericCols.length) {
+      const cat = stringCols[0];
+      const num = numericCols[0];
+      const agg = {};
+      for (const r of rows) {
+        const k = String(r[cat] ?? '');
+        const v = Number(String(r[num]).replace(/[, $%]/g, ''));
+        if (isNaN(v)) continue;
+        agg[k] = (agg[k] || 0) + v;
+      }
+      const entries = Object.entries(agg).sort((a, b) => b[1] - a[1]).slice(0, 10);
+      const data = entries.map(([k, v]) => ({ [cat]: k, [num]: v }));
+      if (data.length) return { type: 'bar', title: `Top ${cat} by ${num}`, xKey: cat, yKey: num, data };
+    }
+
+    // Fallback: simple numeric series
+    if (numericCols.length) {
+      const num = numericCols[0];
+      const data = rows.map((r, i) => ({ index: i + 1, [num]: Number(String(r[num]).replace(/[, $%]/g, '')) })).filter(d => !isNaN(d[num])).slice(0, 50);
+      if (data.length) return { type: 'bar', title: `Values of ${num}`, xKey: 'index', yKey: num, data };
+    }
+
+    return null;
+  }
+
   async function generateInsights() {
     setInsightsLoading(true);
     setError(null);
@@ -419,7 +469,20 @@ export default function AIDataAnalyst() {
       setTimeout(() => setChartFade(true), 50);
     } catch (err) {
       setError("QA error: " + String(err));
-      setChat((c) => [...c, { role: "ai", text: "Error: " + String(err), chartConfig: null }]);
+      const msg = String(err || '');
+      // If quota/proxy error, provide a local fallback chart when possible
+      if (msg.includes('Proxy API error 429') || msg.toLowerCase().includes('insufficient_quota') || msg.toLowerCase().includes('quota')) {
+        const chartConfig = buildFallbackChart(rows, types, userText);
+        if (chartConfig) {
+          setChat((c) => [...c, { role: "ai", text: "OpenAI quota exceeded — showing a local auto-generated chart based on your data.", chartConfig }]);
+          setChartFade(false);
+          setTimeout(() => setChartFade(true), 50);
+        } else {
+          setChat((c) => [...c, { role: "ai", text: "OpenAI quota exceeded and no suitable columns for a fallback chart were found.", chartConfig: null }]);
+        }
+      } else {
+        setChat((c) => [...c, { role: "ai", text: "Error: " + String(err), chartConfig: null }]);
+      }
     } finally {
       setQaLoading(false);
     }
