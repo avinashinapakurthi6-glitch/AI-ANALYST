@@ -88,9 +88,9 @@ export default function AiAnalyst() {
   const [, setLocation] = useLocation();
 
   // App State
-  const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem("anthropic_api_key") || "");
-  const [useProxy, setUseProxy] = useState<boolean>(() => localStorage.getItem("anthropic_use_proxy") === "true" || true);
-  const [customEndpoint, setCustomEndpoint] = useState<string>(() => localStorage.getItem("anthropic_custom_endpoint") || "/api/claude");
+  const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem("openai_api_key") || "");
+  const [useProxy, setUseProxy] = useState<boolean>(() => localStorage.getItem("openai_use_proxy") === "true" || true);
+  const [customEndpoint, setCustomEndpoint] = useState<string>(() => localStorage.getItem("openai_custom_endpoint") || "/api/openai");
   const [showSettings, setShowSettings] = useState<boolean>(false);
   
   // Data State
@@ -270,13 +270,13 @@ export default function AiAnalyst() {
     generateInitialInsights(data.slice(0, 50), columns);
   };
 
-  // Helper to construct Anthropic payload
-  const callClaudeAPI = async (systemPrompt: string, userMessage: string) => {
-    const targetUrl = useProxy ? customEndpoint : "https://api.anthropic.com/v1/messages";
-    
+  // Helper to construct OpenAI payload
+  const callOpenAIAPI = async (systemPrompt: string, userMessage: string) => {
+    const targetUrl = useProxy ? customEndpoint : "https://api.openai.com/v1/chat/completions";
+
     // Check if key is needed and present
     if (!useProxy && !apiKey) {
-      throw new Error("Anthropic API Key is required. Please set it in the settings panel (cog icon).");
+      throw new Error("OpenAI API Key is required. Please set it in the settings panel (cog icon).");
     }
 
     const headers: Record<string, string> = {
@@ -284,27 +284,21 @@ export default function AiAnalyst() {
     };
 
     if (!useProxy) {
-      headers["X-API-Key"] = apiKey;
-      headers["anthropic-version"] = "2023-06-01";
-      // This enables browser access for local dev when using direct call
-      headers["anthropic-dangerous-direct-browser-access"] = "true";
+      headers["Authorization"] = `Bearer ${apiKey}`;
     } else {
       // Pass the API key to the proxy if entered
       if (apiKey) {
-        headers["X-API-Key"] = apiKey;
+        headers["x-api-key"] = apiKey;
       }
     }
 
     const payload = {
-      model: "claude-3-5-sonnet-20241022", // Anthropic recommended model for coding/reasoning
-      max_tokens: 4000,
-      system: systemPrompt,
+      model: (import.meta as any).env.VITE_OPENAI_MODEL || "gpt-4o-mini",
       messages: [
-        {
-          role: "user",
-          content: userMessage
-        }
-      ]
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userMessage }
+      ],
+      max_tokens: 4000
     };
 
     const response = await fetch(targetUrl, {
@@ -328,7 +322,7 @@ export default function AiAnalyst() {
     }
 
     const result = await response.json();
-    return result.content[0]?.text || "";
+    return result.choices?.[0]?.message?.content || result.choices?.[0]?.text || "";
   };
 
   // Generate 3-5 insights on upload
@@ -352,12 +346,12 @@ Columns & Types: ${JSON.stringify(columns)}
 Please review the data and output the JSON format with 3-5 key bullet point insights.`;
 
     try {
-      const responseText = await callClaudeAPI(systemPrompt, userMessage);
-      
+      const responseText = await callOpenAIAPI(systemPrompt, userMessage);
+
       // Parse JSON from response
       const sanitized = sanitizeJsonString(responseText);
       const parsed = JSON.parse(sanitized);
-      
+
       if (parsed && Array.isArray(parsed.insights)) {
         setInsights(parsed.insights);
       } else {
@@ -368,7 +362,7 @@ Please review the data and output the JSON format with 3-5 key bullet point insi
       toast.error(`Could not generate auto-insights: ${err.message || err}`);
       // Add mock fallback insights so UI doesn't look empty if API key is not configured yet
       setInsights([
-        "Configure your Anthropic API Key in the settings (top-right cog) to unlock automated data insights.",
+        "Configure your OpenAI API key in the settings (top-right cog) to unlock automated data insights.",
         `Uploaded file: "${metadata?.name || 'Dataset'}" with ${metadata?.rowCount || 0} rows and ${metadata?.columnCount || 0} columns.`,
         "You can still preview the data table and ask questions once your API Key is configured."
       ]);
@@ -423,7 +417,7 @@ Limit the "data" array to a maximum of 15-20 aggregated data points so the chart
 Question: ${userQuery}`;
 
     try {
-      const responseText = await callClaudeAPI(systemPrompt, userMessage);
+      const responseText = await callOpenAIAPI(systemPrompt, userMessage);
       
       const sanitized = sanitizeJsonString(responseText);
       const parsed = JSON.parse(sanitized);
@@ -450,7 +444,7 @@ Question: ${userQuery}`;
         {
           id: Math.random().toString(36).substring(7),
           role: "assistant",
-          content: `Sorry, I encountered an error while analyzing your question. Please ensure your Anthropic API Key is correct and that the CORS Proxy settings are properly configured.\n\n**Details:** ${err.message || err}`,
+          content: `Sorry, I encountered an error while analyzing your question. Please ensure your OpenAI API key is correct and that the proxy settings are properly configured.\n\n**Details:** ${err.message || err}`,
           error: true,
           timestamp: new Date()
         }
@@ -460,7 +454,7 @@ Question: ${userQuery}`;
     }
   };
 
-  // Helper to extract JSON from Claude's markdown response
+  // Helper to extract JSON from the AI's markdown response
   const sanitizeJsonString = (str: string): string => {
     // Look for content inside ```json ... ``` blocks first
     const jsonBlockRegex = /```json\s*([\s\S]*?)\s*```/;
@@ -660,7 +654,7 @@ Question: ${userQuery}`;
                 ? "bg-blue-500/10 border-blue-500/40 text-blue-400" 
                 : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-100 hover:bg-slate-850"
             }`}
-            title="Configure Claude API Settings"
+            title="Configure OpenAI API Settings"
           >
             <Settings className="w-5 h-5" />
           </button>
@@ -683,7 +677,7 @@ Question: ${userQuery}`;
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-md font-bold text-slate-200 flex items-center gap-2 uppercase tracking-wider font-mono">
                     <Key className="w-4 h-4 text-blue-500" />
-                    Anthropic API Configuration
+                    OpenAI API Configuration
                   </h3>
                   <button 
                     onClick={() => setShowSettings(false)}
@@ -696,11 +690,11 @@ Question: ${userQuery}`;
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* API Key Input */}
                   <div className="space-y-2">
-                    <label className="block text-xs font-mono uppercase text-slate-400">Anthropic API Key</label>
+                    <label className="block text-xs font-mono uppercase text-slate-400">OpenAI API Key</label>
                     <div className="relative">
                       <input
                         type="password"
-                        placeholder="sk-ant-..."
+                        placeholder="sk-..."
                         value={apiKey}
                         onChange={(e) => setApiKey(e.target.value)}
                         className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm font-mono text-slate-200 placeholder-slate-600 focus:outline-none focus:border-blue-500"
@@ -717,7 +711,7 @@ Question: ${userQuery}`;
                       <div>
                         <label className="block text-xs font-mono uppercase text-slate-400">Use API Proxy (CORS Bypass)</label>
                         <p className="text-[10px] text-slate-500 mt-0.5">
-                          Anthropic blocks client-side browser calls. Keep checked to use fallback proxy.
+                          Some providers block direct browser calls. Keep checked to use the server proxy when needed.
                         </p>
                       </div>
                       <input
@@ -932,7 +926,7 @@ Question: ${userQuery}`;
                 <p className="text-xs text-slate-500 mt-2 max-w-sm">
                   {parsedData 
                     ? "Spreadsheet loaded! Ask natural language questions in the box below to generate text summaries and Recharts visualization charts."
-                    : "Upload a data file on the left and set your Anthropic API Key in the settings (top-right cog) to initiate analysis."}
+                    : "Upload a data file on the left and set your OpenAI API key in the settings (top-right cog) to initiate analysis."}
                 </p>
 
                 {/* Example Quick Questions */}
@@ -1026,7 +1020,7 @@ Question: ${userQuery}`;
                     </div>
                     <div className="bg-slate-900 border border-slate-800 rounded-2xl rounded-tl-none p-4 text-slate-400 text-sm shadow-sm flex items-center gap-2">
                       <RefreshCw className="w-4 h-4 animate-spin text-blue-400" />
-                      <span>Claude is crunching numbers & preparing charts...</span>
+                      <span>AI is analyzing the data and preparing charts...</span>
                     </div>
                   </div>
                 )}

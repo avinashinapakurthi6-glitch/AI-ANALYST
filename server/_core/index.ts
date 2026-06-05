@@ -36,12 +36,12 @@ async function startServer() {
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
 
-  // Claude proxy endpoint to avoid CORS
+  // Anthropic (Claude) proxy endpoint to avoid CORS
   app.post("/api/claude", async (req, res) => {
     try {
       const apiKey = req.headers["x-api-key"] || process.env.ANTHROPIC_API_KEY;
       if (!apiKey) {
-        res.status(400).json({ error: "Anthropic API Key is required" });
+        res.status(400).json({ error: "API key is required" });
         return;
       }
 
@@ -58,7 +58,7 @@ async function startServer() {
       const data = await response.json();
       res.status(response.status).json(data);
     } catch (err: any) {
-      console.error("Claude API Proxy Error:", err);
+      console.error("Anthropic API Proxy Error:", err);
       res.status(500).json({ error: err.message || "Internal Server Error" });
     }
   });

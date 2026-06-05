@@ -545,7 +545,7 @@ export default function AIDataAnalyst() {
         <div className="flex items-center space-x-3">
           <input
             className="bg-slate-800 px-3 py-2 rounded-md text-sm w-72 text-slate-200 placeholder-slate-500"
-            placeholder="Paste OpenAI API key (kept local)"
+            placeholder="Paste your OpenAI API key (stored locally)"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
           />
@@ -572,7 +572,7 @@ export default function AIDataAnalyst() {
             role="button"
           >
             <input ref={fileInputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={(e) => e.target.files[0] && handleFileFile(e.target.files[0])} />
-            <div className="text-slate-300">Drag & drop, or click to upload</div>
+            <div className="text-slate-300">Drag & drop or click to upload</div>
             <div className="text-xs text-slate-500">Accepts .csv, .xlsx, .xls</div>
             {fileName && <div className="text-sm text-slate-200 mt-2">Loaded: {fileName}</div>}
             {error && <div className="text-red-400 text-sm mt-2">{error}</div>}
@@ -686,7 +686,7 @@ export default function AIDataAnalyst() {
 
       <footer className="p-4 text-sm text-slate-400 text-center">
         <div>
-          Built with OpenAI (model: {OPENAI_MODEL}). API calls are made from your browser; paste your OpenAI key above.
+          Built with OpenAI (model: {OPENAI_MODEL}). API calls are made from your browser. Paste your OpenAI API key above.
         </div>
         {error && <div className="mt-2 text-red-400">{error}</div>}
       </footer>
