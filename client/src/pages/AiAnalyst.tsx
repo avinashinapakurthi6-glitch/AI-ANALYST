@@ -88,7 +88,7 @@ export default function AiAnalyst() {
   const [, setLocation] = useLocation();
 
   // App State
-  const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem("openai_api_key") || "");
+
   const [useProxy, setUseProxy] = useState<boolean>(() => localStorage.getItem("openai_use_proxy") === "true" || true);
   const [customEndpoint, setCustomEndpoint] = useState<string>(() => localStorage.getItem("openai_custom_endpoint") || "/api/openai");
   const [showSettings, setShowSettings] = useState<boolean>(false);
@@ -113,10 +113,9 @@ export default function AiAnalyst() {
 
   // Save Settings to LocalStorage
   useEffect(() => {
-    localStorage.setItem("anthropic_api_key", apiKey);
-    localStorage.setItem("anthropic_use_proxy", useProxy ? "true" : "false");
-    localStorage.setItem("anthropic_custom_endpoint", customEndpoint);
-  }, [apiKey, useProxy, customEndpoint]);
+    localStorage.setItem("openai_use_proxy", useProxy ? "true" : "false");
+    localStorage.setItem("openai_custom_endpoint", customEndpoint);
+  }, [useProxy, customEndpoint]);
 
   // Scroll to bottom of chat
   useEffect(() => {
@@ -274,23 +273,14 @@ export default function AiAnalyst() {
   const callOpenAIAPI = async (systemPrompt: string, userMessage: string) => {
     const targetUrl = useProxy ? customEndpoint : "https://api.openai.com/v1/chat/completions";
 
-    // Check if key is needed and present
-    if (!useProxy && !apiKey) {
-      throw new Error("OpenAI API Key is required. Please set it in the settings panel (cog icon).");
+    // Only proxy-based calls are supported from the browser UI
+    if (!useProxy) {
+      throw new Error("Direct browser calls are disabled. Enable 'Use API Proxy' in settings or configure a proxy endpoint.");
     }
 
     const headers: Record<string, string> = {
       "Content-Type": "application/json"
     };
-
-    if (!useProxy) {
-      headers["Authorization"] = `Bearer ${apiKey}`;
-    } else {
-      // Pass the API key to the proxy if entered
-      if (apiKey) {
-        headers["x-api-key"] = apiKey;
-      }
-    }
 
     const payload = {
       model: (import.meta as any).env.VITE_OPENAI_MODEL || "gpt-4o-mini",
@@ -362,9 +352,9 @@ Please review the data and output the JSON format with 3-5 key bullet point insi
       toast.error(`Could not generate auto-insights: ${err.message || err}`);
       // Add mock fallback insights so UI doesn't look empty if API key is not configured yet
       setInsights([
-        "Configure your OpenAI API key in the settings (top-right cog) to unlock automated data insights.",
+        "Enable 'Use API Proxy' in settings (top-right cog) to unlock automated data insights.",
         `Uploaded file: "${metadata?.name || 'Dataset'}" with ${metadata?.rowCount || 0} rows and ${metadata?.columnCount || 0} columns.`,
-        "You can still preview the data table and ask questions once your API Key is configured."
+        "You can still preview the data table and ask questions; the server proxy handles LLM requests."
       ]);
     } finally {
       setInsightsLoading(false);
@@ -444,7 +434,7 @@ Question: ${userQuery}`;
         {
           id: Math.random().toString(36).substring(7),
           role: "assistant",
-          content: `Sorry, I encountered an error while analyzing your question. Please ensure your OpenAI API key is correct and that the proxy settings are properly configured.\n\n**Details:** ${err.message || err}`,
+          content: `Sorry, I encountered an error while analyzing your question. Please ensure the server proxy is configured correctly or enable 'Use API Proxy' in settings.\n\n**Details:** ${err.message || err}`,
           error: true,
           timestamp: new Date()
         }
@@ -690,19 +680,7 @@ Question: ${userQuery}`;
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* API Key Input */}
                   <div className="space-y-2">
-                    <label className="block text-xs font-mono uppercase text-slate-400">OpenAI API Key</label>
-                    <div className="relative">
-                      <input
-                        type="password"
-                        placeholder="sk-..."
-                        value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-lg text-sm font-mono text-slate-200 placeholder-slate-600 focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-                    <p className="text-[10px] text-slate-500">
-                      Saved locally in your browser cache. Never uploaded to our server database.
-                    </p>
+                    <p className="text-sm text-slate-400">API keys are managed on the server. Use the "Use API Proxy" option below to route requests through the server proxy.</p>
                   </div>
 
                   {/* CORS Bypass Setting */}
@@ -1037,8 +1015,8 @@ Question: ${userQuery}`;
                 placeholder={
                   !parsedData
                     ? "Please upload a CSV or Excel sheet first..."
-                    : !apiKey && !useProxy
-                      ? "Configure API Key in settings cog to query..."
+                    : !useProxy
+                      ? "Enable 'Use API Proxy' in settings to query..."
                       : "e.g., Which product generates the highest average sales?"
                 }
                 value={inputQuery}
