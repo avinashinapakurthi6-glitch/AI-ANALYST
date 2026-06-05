@@ -74,67 +74,36 @@ function sampleFirst(rows = [], n = 10) {
   return rows.slice(0, n);
 }
 
-async function callOpenAI(apiKey, prompt, maxTokens = 800) {
-  // Try proxy endpoint first to avoid CORS issues (server has /api/openai)
-  try {
-    const proxyBody = {
-      model: OPENAI_MODEL,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: prompt },
-      ],
-      max_tokens: maxTokens,
-    };
-    const proxyRes = await fetch("/api/openai", {
-      method: "POST",
-      headers: Object.assign({ "Content-Type": "application/json" }, apiKey ? { "x-api-key": apiKey } : {}),
-      body: JSON.stringify(proxyBody),
-    });
-    if (proxyRes.ok) {
-      const data = await proxyRes.json();
-      const text = data.choices && data.choices[0] && (data.choices[0].message?.content || data.choices[0].text) || data.text || JSON.stringify(data);
-      return typeof text === "string" ? text : JSON.stringify(text);
-    } else {
-      const txt = await proxyRes.text();
-      throw new Error(`Proxy API error ${proxyRes.status}: ${txt}`);
-    }
-  } catch (proxyErr) {
-    // Fallback: attempt direct call to OpenAI
-    try {
-      const url = "https://api.openai.com/v1/chat/completions";
-      const body = {
-        model: OPENAI_MODEL,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: prompt },
-        ],
-        max_tokens: maxTokens,
-      };
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`Direct API error: ${res.status} ${res.statusText} - ${text}`);
-      }
-      const data = await res.json();
-      const text = data.choices && data.choices[0] && (data.choices[0].message?.content || data.choices[0].text) || JSON.stringify(data);
-      return typeof text === "string" ? text : JSON.stringify(text);
-    } catch (directErr) {
-      throw proxyErr instanceof Error ? proxyErr : new Error(String(proxyErr));
-    }
+async function callOpenAI(_apiKey, prompt, maxTokens = 800) {
+  // Only proxy-based calls are used. The server reads OPENAI_API_KEY from environment.
+  const proxyBody = {
+    model: OPENAI_MODEL,
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: prompt },
+    ],
+    max_tokens: maxTokens,
+  };
+
+  const proxyRes = await fetch("/api/openai", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(proxyBody),
+  });
+
+  if (!proxyRes.ok) {
+    const txt = await proxyRes.text().catch(() => "");
+    throw new Error(`Proxy API error ${proxyRes.status}: ${txt}`);
   }
+
+  const data = await proxyRes.json();
+  const text = data.choices && data.choices[0] && (data.choices[0].message?.content || data.choices[0].text) || data.text || JSON.stringify(data);
+  return typeof text === "string" ? text : JSON.stringify(text);
 }
 
 export default function AIDataAnalyst() {
-  const envKey = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_OPENAI_API_KEY) ? import.meta.env.VITE_OPENAI_API_KEY : null;
-  const storedKey = localStorage.getItem("OPENAI_API_KEY") || localStorage.getItem("openai_api_key");
-  const [apiKey, setApiKey] = useState(() => envKey || storedKey || "");
+  // Using server-side OpenAI API key via /api/openai proxy (no client key required)
+  const apiKey = null;
   const [fileName, setFileName] = useState(null);
   const [rows, setRows] = useState([]);
   const [preview, setPreview] = useState([]);
@@ -150,9 +119,7 @@ export default function AIDataAnalyst() {
   const [error, setError] = useState(null);
   const fileInputRef = useRef();
 
-  useEffect(() => {
-    localStorage.setItem("OPENAI_API_KEY", apiKey || "");
-  }, [apiKey]);
+  // No client-side API key persisted; server proxy uses environment key.
 
   useEffect(() => {
     if (rows.length > 0) {
@@ -543,21 +510,7 @@ export default function AIDataAnalyst() {
         </div>
 
         <div className="flex items-center space-x-3">
-          <input
-            className="bg-slate-800 px-3 py-2 rounded-md text-sm w-72 text-slate-200 placeholder-slate-500"
-            placeholder="Paste your OpenAI API key (stored locally)"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-          />
-          <button
-            className="bg-indigo-600 hover:bg-indigo-500 px-3 py-2 rounded-md text-sm"
-            onClick={() => {
-              localStorage.setItem("OPENAI_API_KEY", apiKey || "");
-              alert("OpenAI API key saved to localStorage for this browser.");
-            }}
-          >
-            Save
-          </button>
+          <div className="text-sm text-slate-400">Using server-side OpenAI key via proxy (/api/openai)</div>
         </div>
       </header>
 
