@@ -43,15 +43,9 @@ export default function Home() {
             <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
               Secure, intelligent data analysis with military-grade encryption. Your data never leaves your machine.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <a href={getLoginUrl()} className="w-full sm:w-auto">
-                <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white w-full">
-                  Get Started (Enterprise)
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Button>
-              </a>
-              <Link href="/analyst" className="w-full sm:w-auto">
-                <Button size="lg" variant="outline" className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300 w-full">
+            <div className="flex items-center justify-center">
+              <Link href="/analyst">
+                <Button size="lg" variant="outline" className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300">
                   <Sparkles className="w-4 h-4 mr-2" />
                   Try AI Analyst Agent (Beta)
                 </Button>
@@ -160,12 +154,6 @@ export default function Home() {
 
           <div className="text-center">
             <p className="text-slate-400 mb-6">Ready to analyze your data securely?</p>
-            <a href={getLoginUrl()}>
-              <Button size="lg" className="bg-blue-600 hover:bg-blue-700 text-white">
-                Start Free
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </a>
           </div>
         </div>
       </div>
