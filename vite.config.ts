@@ -168,7 +168,7 @@ export default defineConfig({
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
     // Increase chunk size warning limit to reduce noisy warnings for large bundles (size in kB)
-    chunkSizeWarningLimit: 2000,
+    chunkSizeWarningLimit: 5000,
   },
   server: {
     host: true,

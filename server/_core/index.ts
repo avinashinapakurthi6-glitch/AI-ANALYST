@@ -63,6 +63,33 @@ async function startServer() {
     }
   });
 
+  // OpenAI proxy endpoint to avoid CORS (new)
+  app.post("/api/openai", async (req, res) => {
+    try {
+      const apiKey = req.headers["x-api-key"] || process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        res.status(400).json({ error: "OpenAI API Key is required" });
+        return;
+      }
+
+      // Expecting body to contain { model, messages, max_tokens }
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(req.body),
+      });
+
+      const data = await response.json();
+      res.status(response.status).json(data);
+    } catch (err: any) {
+      console.error("OpenAI API Proxy Error:", err);
+      res.status(500).json({ error: err.message || "Internal Server Error" });
+    }
+  });
+
   // tRPC API
   app.use(
     "/api/trpc",

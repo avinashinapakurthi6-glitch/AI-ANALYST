@@ -15,7 +15,7 @@ import {
   RefreshCw,
   FileText,
   BarChart3,
-  LineChart,
+  LineChart as LineChartIcon,
   PieChart as PieIcon,
   HelpCircle,
   Info,
@@ -180,9 +180,9 @@ export default function AiAnalyst() {
           complete: (results) => {
             handleParsedContent(selectedFile.name, selectedFile.size, results.data as Array<Record<string, any>>);
           },
-          error: (err) => {
+          error: (err: any) => {
             setIsParsing(false);
-            toast.error(`Error parsing CSV: ${err.message}`);
+            toast.error(`Error parsing CSV: ${err?.message || String(err)}`);
           }
         });
       };
@@ -530,7 +530,7 @@ Question: ${userQuery}`;
         <div className="flex items-center justify-between mb-4">
           <h4 className="text-sm font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
             {type === "bar" && <BarChart3 className="w-4 h-4 text-blue-500" />}
-            {type === "line" && <LineChart className="w-4 h-4 text-emerald-500" />}
+            {type === "line" && <LineChartIcon className="w-4 h-4 text-emerald-500" />}
             {type === "pie" && <PieIcon className="w-4 h-4 text-amber-500" />}
             {title}
           </h4>

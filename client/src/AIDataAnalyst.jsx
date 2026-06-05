@@ -17,7 +17,7 @@ import {
   CartesianGrid,
 } from "recharts";
 
-const CLAUDE_MODEL = "claude-sonnet-4-20250514";
+const OPENAI_MODEL = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_OPENAI_MODEL) ? import.meta.env.VITE_OPENAI_MODEL : 'gpt-4o-mini';
 const SYSTEM_PROMPT = `You are a data analyst AI. The user will give you tabular data and ask questions. 
 Always respond in this JSON format:
 {
@@ -74,46 +74,41 @@ function sampleFirst(rows = [], n = 10) {
   return rows.slice(0, n);
 }
 
-async function callClaude(apiKey, prompt, maxTokens = 800) {
-  // Try proxy endpoint first to avoid CORS issues (server has /api/claude)
+async function callOpenAI(apiKey, prompt, maxTokens = 800) {
+  // Try proxy endpoint first to avoid CORS issues (server has /api/openai)
   try {
     const proxyBody = {
-      model: CLAUDE_MODEL,
+      model: OPENAI_MODEL,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: prompt },
       ],
-      max_tokens_to_sample: maxTokens,
+      max_tokens: maxTokens,
     };
-    const proxyRes = await fetch("/api/claude", {
+    const proxyRes = await fetch("/api/openai", {
       method: "POST",
       headers: Object.assign({ "Content-Type": "application/json" }, apiKey ? { "x-api-key": apiKey } : {}),
       body: JSON.stringify(proxyBody),
     });
     if (proxyRes.ok) {
       const data = await proxyRes.json();
-      // Normalize many possible response shapes
-      const text =
-        data.completion ||
-        data.text ||
-        (data.output_text) ||
-        (data.choices && data.choices[0] && (data.choices[0].message?.content || data.choices[0].text)) ||
-        (data.completions && data.completions[0] && (data.completions[0].text || data.completions[0].completion)) ||
-        (data.items && data.items[0] && data.items[0].content && data.items[0].content[0] && data.items[0].content[0].text) ||
-        JSON.stringify(data);
+      const text = data.choices && data.choices[0] && (data.choices[0].message?.content || data.choices[0].text) || data.text || JSON.stringify(data);
       return typeof text === "string" ? text : JSON.stringify(text);
     } else {
       const txt = await proxyRes.text();
       throw new Error(`Proxy API error ${proxyRes.status}: ${txt}`);
     }
   } catch (proxyErr) {
-    // Fallback: attempt direct call (may be blocked by CORS in browser)
+    // Fallback: attempt direct call to OpenAI
     try {
-      const url = "https://api.anthropic.com/v1/complete";
+      const url = "https://api.openai.com/v1/chat/completions";
       const body = {
-        model: CLAUDE_MODEL,
-        prompt,
-        max_tokens_to_sample: maxTokens,
+        model: OPENAI_MODEL,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: prompt },
+        ],
+        max_tokens: maxTokens,
       };
       const res = await fetch(url, {
         method: "POST",
@@ -128,23 +123,17 @@ async function callClaude(apiKey, prompt, maxTokens = 800) {
         throw new Error(`Direct API error: ${res.status} ${res.statusText} - ${text}`);
       }
       const data = await res.json();
-      const text =
-        data.completion ||
-        data.text ||
-        (data.completions && data.completions[0] && (data.completions[0].text || data.completions[0].completion)) ||
-        (data.result && data.result[0] && data.result[0].content && data.result[0].content[0] && data.result[0].content[0].text) ||
-        JSON.stringify(data);
-      return text;
+      const text = data.choices && data.choices[0] && (data.choices[0].message?.content || data.choices[0].text) || JSON.stringify(data);
+      return typeof text === "string" ? text : JSON.stringify(text);
     } catch (directErr) {
-      // Throw the most relevant error
       throw proxyErr instanceof Error ? proxyErr : new Error(String(proxyErr));
     }
   }
 }
 
 export default function AIDataAnalyst() {
-  const envKey = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_ANTHROPIC_API_KEY) ? import.meta.env.VITE_ANTHROPIC_API_KEY : null;
-  const storedKey = localStorage.getItem("ANTHROPIC_API_KEY") || localStorage.getItem("anthropic_api_key");
+  const envKey = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_OPENAI_API_KEY) ? import.meta.env.VITE_OPENAI_API_KEY : null;
+  const storedKey = localStorage.getItem("OPENAI_API_KEY") || localStorage.getItem("openai_api_key");
   const [apiKey, setApiKey] = useState(() => envKey || storedKey || "");
   const [fileName, setFileName] = useState(null);
   const [rows, setRows] = useState([]);
@@ -162,7 +151,7 @@ export default function AIDataAnalyst() {
   const fileInputRef = useRef();
 
   useEffect(() => {
-    localStorage.setItem("ANTHROPIC_API_KEY", apiKey || "");
+    localStorage.setItem("OPENAI_API_KEY", apiKey || "");
   }, [apiKey]);
 
   useEffect(() => {
@@ -341,7 +330,7 @@ export default function AIDataAnalyst() {
 
   async function generateInsights() {
     if (!apiKey) {
-      setInsights(["Set your Anthropic API key to enable auto insights."]);
+      setInsights(["Set your OpenAI API key to enable auto insights."]);
       return;
     }
     setInsightsLoading(true);
@@ -350,7 +339,7 @@ export default function AIDataAnalyst() {
       const sample = rows.slice(0, 50);
       const overallMessage = `Data: ${JSON.stringify(sample)}\n\nQuestion: Provide 3-5 concise bullet-point insights about the dataset (e.g., top regions, outliers, strong trends, notable averages). Return only bullets or a JSON array of strings.`;
       const overallPrompt = `System: ${SYSTEM_PROMPT}\n\nUser: ${overallMessage}`;
-      const overallText = await callClaude(apiKey, overallPrompt, 600);
+      const overallText = await callOpenAI(apiKey, overallPrompt, 600);
       let overallBullets = [];
       try {
         const parsed = JSON.parse(overallText);
@@ -387,7 +376,7 @@ export default function AIDataAnalyst() {
         const segMessage = `Data: ${JSON.stringify(sample)}\n\nQuestion: Provide segmented insights grouped by the column \"${seg}\". For each distinct value in \"${seg}\" provide 2 concise bullet points describing count, notable averages (for numeric columns), and any outliers or strong signals. Return bullets grouped under headings like \"${seg}: VALUE\".`;
         const segPrompt = `System: ${SYSTEM_PROMPT}\n\nUser: ${segMessage}`;
         try {
-          const segText = await callClaude(apiKey, segPrompt, 800);
+          const segText = await callOpenAI(apiKey, segPrompt, 800);
           const parts = segText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
           segmentedResults.push(`By ${seg}:`);
           for (const p of parts.slice(0, 20)) segmentedResults.push(p);
@@ -410,7 +399,7 @@ export default function AIDataAnalyst() {
       // If API failed due to billing/quota or proxy, fallback to local insights
       const msg = String(err || "");
       if (msg.includes("credit balance") || msg.includes("Proxy API error 400") || msg.includes("invalid_request_error")) {
-        setError("Anthropic API unavailable (billing/quota). Showing local insights instead.");
+        setError("OpenAI API unavailable (billing/quota) or proxy error. Showing local insights instead.");
         const local = computeLocalInsights(rows);
         setInsights(local);
       } else {
@@ -433,11 +422,11 @@ export default function AIDataAnalyst() {
     setChat((c) => [...c, { role: "user", text: userText }]);
     setQuery("");
     try {
-      if (!apiKey) throw new Error("Set Anthropic API key first.");
+      if (!apiKey) throw new Error("Set OpenAI API key first.");
       const sample = rows.slice(0, 50);
       const userMessage = `Data: ${JSON.stringify(sample)}\n\nQuestion: ${userText}`;
       const prompt = `System: ${SYSTEM_PROMPT}\n\nUser: ${userMessage}`;
-      const text = await callClaude(apiKey, prompt, 1000);
+      const text = await callOpenAI(apiKey, prompt, 1000);
       let parsed;
       try {
         parsed = JSON.parse(text);
@@ -556,15 +545,15 @@ export default function AIDataAnalyst() {
         <div className="flex items-center space-x-3">
           <input
             className="bg-slate-800 px-3 py-2 rounded-md text-sm w-72 text-slate-200 placeholder-slate-500"
-            placeholder="Paste Anthropic API key (kept local)"
+            placeholder="Paste OpenAI API key (kept local)"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
           />
           <button
             className="bg-indigo-600 hover:bg-indigo-500 px-3 py-2 rounded-md text-sm"
             onClick={() => {
-              localStorage.setItem("ANTHROPIC_API_KEY", apiKey || "");
-              alert("API key saved to localStorage for this browser.");
+              localStorage.setItem("OPENAI_API_KEY", apiKey || "");
+              alert("OpenAI API key saved to localStorage for this browser.");
             }}
           >
             Save
@@ -697,7 +686,7 @@ export default function AIDataAnalyst() {
 
       <footer className="p-4 text-sm text-slate-400 text-center">
         <div>
-          Built with Claude (model: {CLAUDE_MODEL}). API calls are made from your browser; paste your Anthropic key above.
+          Built with OpenAI (model: {OPENAI_MODEL}). API calls are made from your browser; paste your OpenAI key above.
         </div>
         {error && <div className="mt-2 text-red-400">{error}</div>}
       </footer>
